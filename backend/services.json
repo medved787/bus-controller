@@ -1,0 +1,62 @@
+{
+  "check_interval_seconds": 10,
+  "tcp_timeout_seconds": 3,
+  "services": [
+    {
+      "id": "svc1",
+      "name": "repomanager",
+      "host": "127.0.0.1",
+      "port": 8080,
+      "webhook": {
+        "url": "https://awx.example.com/api/v2/job_templates/1/launch/",
+        "method": "POST",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{}",
+        "hmac_secret": "",
+        "hmac_header": "X-Hub-Signature"
+      }
+    },
+    {
+      "id": "svc2",
+      "name": "Service 2",
+      "host": "10.0.0.12",
+      "port": 9090,
+      "webhook": {
+        "url": "https://awx.example.com/api/v2/job_templates/2/launch/",
+        "method": "POST",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{}",
+        "hmac_secret": "",
+        "hmac_header": "X-Hub-Signature"
+      }
+    },
+     {
+      "id": "svc3",
+      "name": "Service 2",
+      "host": "10.0.0.12",
+      "port": 9090,
+      "webhook": {
+        "url": "https://awx.example.com/api/v2/job_templates/2/launch/",
+        "method": "POST",
+        "headers": { "Content-Type": "application/json" },
+        "body": "{}",
+        "hmac_secret": "",
+        "hmac_header": "X-Hub-Signature"
+      }
+    },
+    {
+  "id": "svc4",
+  "name": "repomanager",
+  "host": "127.0.0.1",
+  "port": 8080,
+  "webhook": {
+    "url": "https://awx.example.com/api/v2/job_templates/1/launch/",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"extra_vars\":{\"service\":\"repomanager\"}}"
+  }
+}
+  ]
+}

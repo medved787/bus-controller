@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+
+  # --- Наше приложение мониторинга ---
+  port-monitor:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: port-monitor
+    restart: unless-stopped
+    environment:
+      - PORT=8000
+    # Порт наружу НЕ пробрасываем напрямую — доступ только через oauth2-proxy.
+    # Если нужно временно проверить без авторизации, раскомментируйте:
+    # ports:
+    #   - "8000:8000"
+    networks:
+      - monitor-net
+
+  # --- Прокси с авторизацией через Keycloak (OIDC) ---
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: oauth2-proxy
+    restart: unless-stopped
+    depends_on:
+      - port-monitor
+    ports:
+      - "4180:4180"   # это и есть публичный вход на страницу мониторинга
+    environment:
+      # --- OIDC / Keycloak ---
+      OAUTH2_PROXY_PROVIDER: "keycloak-oidc"
+      OAUTH2_PROXY_OIDC_ISSUER_URL: "https://keycloak.example.com/realms/YOUR_REALM"
+      OAUTH2_PROXY_CLIENT_ID: "port-monitor"
+      OAUTH2_PROXY_CLIENT_SECRET: "CHANGE_ME"          # secret confidential-клиента в Keycloak
+      OAUTH2_PROXY_REDIRECT_URL: "https://monitor.example.com/oauth2/callback"
+
+      # --- Куда проксировать после успешного логина ---
+      OAUTH2_PROXY_UPSTREAMS: "http://port-monitor:8000/"
+
+      # --- Технические настройки ---
+      OAUTH2_PROXY_HTTP_ADDRESS: "0.0.0.0:4180"
+      OAUTH2_PROXY_COOKIE_SECRET: "CHANGE_ME_32_BYTE_BASE64_SECRET"  # сгенерировать: openssl rand -base64 32
+      OAUTH2_PROXY_COOKIE_SECURE: "true"                             # false, если тестируете по http
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"                                 # или ограничьте нужным доменом
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      # Если сертификат Keycloak self-signed, для теста можно ослабить проверку (не для прода):
+      # OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true"
+    networks:
+      - monitor-net
+
+networks:
+  monitor-net:
+    driver: bridge

@@ -1,0 +1,90 @@
+const POLL_INTERVAL_MS = 10000;
+
+const cardsEl = document.getElementById("cards");
+const lastPollEl = document.getElementById("last-poll");
+const toastEl = document.getElementById("toast");
+
+function fmtTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleTimeString("ru-RU", { hour12: false });
+}
+
+function statusLabel(status) {
+  if (status === "online") return "online";
+  if (status === "offline") return "offline";
+  return "checking…";
+}
+
+function renderCards(services) {
+  cardsEl.innerHTML = "";
+  for (const svc of services) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.status = svc.status;
+
+    card.innerHTML = `
+      <div class="card-top">
+        <div>
+          <p class="card-name">${svc.name}</p>
+          <p class="card-target">${svc.host}:${svc.port}</p>
+        </div>
+        <span class="status-pill"><span class="status-dot"></span>${statusLabel(svc.status)}</span>
+      </div>
+      ${svc.last_error ? `<div class="error-line">${svc.last_error}</div>` : ""}
+      <div class="card-footer">
+        <span class="last-checked">проверено: ${fmtTime(svc.last_checked)}</span>
+        <button class="trigger-btn" data-id="${svc.id}">Restart</button>
+      </div>
+    `;
+
+    cardsEl.appendChild(card);
+  }
+
+  cardsEl.querySelectorAll(".trigger-btn").forEach((btn) => {
+    btn.addEventListener("click", () => triggerWebhook(btn));
+  });
+}
+
+async function pollStatus() {
+  try {
+    const res = await fetch("/api/status");
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const services = await res.json();
+    renderCards(services);
+    lastPollEl.textContent = "обновлено: " + new Date().toLocaleTimeString("ru-RU", { hour12: false });
+  } catch (err) {
+    lastPollEl.textContent = "ошибка опроса: " + err.message;
+  }
+}
+
+async function triggerWebhook(btn) {
+  const id = btn.dataset.id;
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = "…";
+
+  try {
+    const res = await fetch(`/api/trigger/${encodeURIComponent(id)}`, { method: "POST" });
+    const data = await res.json();
+    showToast(data.success ? "success" : "error", data.message || (data.success ? "Запущено" : "Ошибка"));
+  } catch (err) {
+    showToast("error", "Не удалось выполнить запрос: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+let toastTimer = null;
+function showToast(type, message) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = message;
+  toastEl.className = `toast visible ${type}`;
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove("visible");
+  }, 5000);
+}
+
+pollStatus();
+setInterval(pollStatus, POLL_INTERVAL_MS);
