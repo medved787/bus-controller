@@ -49,19 +49,18 @@ func LoadConfig(path string) (*Config, error) {
 	if len(cfg.Services) == 0 {
 		return nil, fmt.Errorf("config has no services defined")
 	}
+	seen := make(map[string]bool, len(cfg.Services))
 	for i := range cfg.Services {
 		s := &cfg.Services[i]
 		if s.ID == "" {
 			return nil, fmt.Errorf("service at index %d is missing id", i)
 		}
+		if seen[s.ID] {
+			return nil, fmt.Errorf("duplicate service id %q", s.ID)
+		}
+		seen[s.ID] = true
 		if s.Host == "" || s.Port == 0 {
 			return nil, fmt.Errorf("service %q is missing host/port", s.ID)
-		}
-		if s.Webhook.Method == "" {
-			s.Webhook.Method = "POST"
-		}
-		if s.Webhook.HMACHeader == "" {
-			s.Webhook.HMACHeader = "X-Hub-Signature"
 		}
 	}
 

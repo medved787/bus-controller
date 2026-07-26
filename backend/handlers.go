@@ -74,7 +74,7 @@ func (s *Server) handleTrigger(w http.ResponseWriter, r *http.Request) {
 	if svc.Webhook.HMACSecret != "" {
 		mac := hmac.New(sha256.New, []byte(svc.Webhook.HMACSecret))
 		mac.Write(body)
-		sig := "sha1=" + hex.EncodeToString(mac.Sum(nil))
+		sig := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 		req.Header.Set(svc.Webhook.HMACHeader, sig)
 	}
 

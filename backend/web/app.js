@@ -16,6 +16,12 @@ function statusLabel(status) {
   return "checking…";
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 function renderCards(services) {
   cardsEl.innerHTML = "";
   for (const svc of services) {
@@ -26,12 +32,12 @@ function renderCards(services) {
     card.innerHTML = `
       <div class="card-top">
         <div>
-          <p class="card-name">${svc.name}</p>
-          <p class="card-target">${svc.host}:${svc.port}</p>
+          <p class="card-name">${escapeHtml(svc.name)}</p>
+          <p class="card-target">${escapeHtml(svc.host)}:${svc.port}</p>
         </div>
         <span class="status-pill"><span class="status-dot"></span>${statusLabel(svc.status)}</span>
       </div>
-      ${svc.last_error ? `<div class="error-line">${svc.last_error}</div>` : ""}
+      ${svc.last_error ? `<div class="error-line">${escapeHtml(svc.last_error)}</div>` : ""}
       <div class="card-footer">
         <span class="last-checked">проверено: ${fmtTime(svc.last_checked)}</span>
         <button class="trigger-btn" data-id="${svc.id}">Restart</button>

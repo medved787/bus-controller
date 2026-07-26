@@ -56,6 +56,20 @@
           "Content-Type": "application/json"
         },
         "body": "{\"extra_vars\":{\"service\":\"repomanager\"}}"
+      }
+    },
+    {
+      "id": "svc5",
+      "name": "repomanager2",
+      "host": "127.0.0.1",
+      "port": 8080,
+      "webhook": {
+        "url": "https://awx.example.com/api/v2/job_templates/1/launch/",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{\"extra_vars\":{\"service\":\"repomanager\"}}"
   }
 }
   ]
