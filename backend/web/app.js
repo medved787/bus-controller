@@ -12,8 +12,14 @@ function fmtTime(iso) {
 
 function statusLabel(status) {
   if (status === "online") return "online";
+  if (status === "degraded") return "degraded";
   if (status === "offline") return "offline";
   return "checking…";
+}
+
+function checkTypeLabel(checkType) {
+  if (checkType === "http") return "HTTP /health";
+  return "TCP";
 }
 
 function escapeHtml(str) {
@@ -33,13 +39,13 @@ function renderCards(services) {
       <div class="card-top">
         <div>
           <p class="card-name">${escapeHtml(svc.name)}</p>
-          <p class="card-target">${escapeHtml(svc.host)}:${svc.port}</p>
+          <p class="card-target">${escapeHtml(svc.host)}:${svc.port} <span class="check-type">${checkTypeLabel(svc.check_type)}</span></p>
         </div>
         <span class="status-pill"><span class="status-dot"></span>${statusLabel(svc.status)}</span>
       </div>
       ${svc.last_error ? `<div class="error-line">${escapeHtml(svc.last_error)}</div>` : ""}
       <div class="card-footer">
-        <span class="last-checked">проверено: ${fmtTime(svc.last_checked)}</span>
+        <span class="last-checked">проверено: ${fmtTime(svc.last_checked)}${svc.response_time_ms != null ? ` · ${svc.response_time_ms}мс` : ""}</span>
         <button class="trigger-btn" data-id="${svc.id}">Restart</button>
       </div>
     `;

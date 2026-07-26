@@ -3,7 +3,7 @@ version: "3.8"
 services:
 
   # --- Наше приложение мониторинга ---
-  port-monitor:
+  bus-controller:
     image: bus-controller:1.0
     container_name: bus-controller
     restart: unless-stopped
@@ -25,19 +25,19 @@ services:
   #   container_name: oauth2-proxy
   #   restart: unless-stopped
   #   depends_on:
-  #     - port-monitor
+  #     - bus-controller
   #   ports:
   #     - "4180:4180"   # это и есть публичный вход на страницу мониторинга
   #   environment:
   #     # --- OIDC / Keycloak ---
   #     OAUTH2_PROXY_PROVIDER: "keycloak-oidc"
   #     OAUTH2_PROXY_OIDC_ISSUER_URL: "https://keycloak.example.com/realms/YOUR_REALM"
-  #     OAUTH2_PROXY_CLIENT_ID: "port-monitor"
+  #     OAUTH2_PROXY_CLIENT_ID: "bus-controller"
   #     OAUTH2_PROXY_CLIENT_SECRET: "CHANGE_ME"          # secret confidential-клиента в Keycloak
   #     OAUTH2_PROXY_REDIRECT_URL: "https://monitor.example.com/oauth2/callback"
 
   #     # --- Куда проксировать после успешного логина ---
-  #     OAUTH2_PROXY_UPSTREAMS: "http://port-monitor:8000/"
+  #     OAUTH2_PROXY_UPSTREAMS: "http://bus-controller:8000/"
 
   #     # --- Технические настройки ---
   #     OAUTH2_PROXY_HTTP_ADDRESS: "0.0.0.0:4180"
