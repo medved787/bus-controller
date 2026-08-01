@@ -21,13 +21,19 @@ services:
       - monitor-net
 
   # --- Frontend: статика + reverse proxy /api/* на bus-controller ---
+  # Используем готовый образ nginx, файлы подключаем volume'ами —
+  # свой образ не собираем, правки в frontend/ подхватываются рестартом контейнера.
   frontend:
-    build: ./frontend
-    image: bus-controller-frontend:1.0
+    image: nginx:1.27-alpine
     container_name: bus-controller-frontend
     restart: unless-stopped
     depends_on:
       - bus-controller
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
+      - ./frontend/app.js:/usr/share/nginx/html/app.js:ro
+      - ./frontend/style.css:/usr/share/nginx/html/style.css:ro
     # Порт наружу пробрасываем для локальной проверки без oauth2-proxy.
     # В проде вместо этого публичным входом должен быть oauth2-proxy.
     ports:

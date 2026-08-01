@@ -23,14 +23,13 @@
 │   ├── go.mod                    # модуль bus-controller, Go 1.22
 │   └── services.json             # конфиг сервисов и вебхуков (пример)
 └── frontend/
-    ├── Dockerfile                # сборка образа nginx со статикой
     ├── nginx.conf                # раздача статики + reverse proxy /api/* → bus-controller:8000
     ├── index.html                # разметка страницы
     ├── app.js                     # опрос /api/status, рендер карточек, вызов /api/trigger
     └── style.css                   # тёмная тема оформления
 ```
 
-Backend и frontend — отдельные сервисы docker-compose и отдельные Docker-образы. Backend отдаёт только JSON API (`/api/status`, `/api/trigger/{id}`) и ничего не знает о UI — это позволяет подключать к нему любые другие frontend'ы, не трогая backend.
+Backend и frontend — отдельные сервисы docker-compose. Backend отдаёт только JSON API (`/api/status`, `/api/trigger/{id}`) и ничего не знает о UI — это позволяет подключать к нему любые другие frontend'ы, не трогая backend. Frontend не собирается в отдельный образ: сервис `frontend` в `docker-compose.yml` использует готовый образ `nginx:1.27-alpine`, а `nginx.conf` и статические файлы подключаются volume'ами — правки в них подхватываются рестартом контейнера, без пересборки.
 
 ## Как это работает
 
@@ -164,7 +163,7 @@ docker compose up --build
 Поднимутся два сервиса:
 
 - `bus-controller` — backend (Go), только API, порт `8000` наружу не пробрасывается;
-- `frontend` — nginx со статикой UI и reverse proxy `/api/*` → `bus-controller:8000`, доступен на `http://localhost:8080`.
+- `frontend` — готовый образ `nginx:1.27-alpine` с примонтированными `frontend/nginx.conf` и статикой (`index.html`/`app.js`/`style.css`); nginx раздаёт UI и проксирует `/api/*` → `bus-controller:8000`, доступен на `http://localhost:8080`. Свой образ для frontend не собирается — правки в файлах `frontend/` подхватываются рестартом контейнера (`docker compose restart frontend`), без `--build`.
 
 Порт `8000` backend'а наружу не пробрасывается — снаружи он доступен только через `frontend` (порт `8080`) либо через `oauth2-proxy`, если он настроен. Для использования `oauth2-proxy` нужно настроить соответствующий блок в `docker-compose.yml`:
 
