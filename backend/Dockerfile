@@ -8,10 +8,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /bus-controller .
  
 # --- runtime stage ---
 FROM alpine:3.20
-#RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=build /bus-controller ./bus-controller
-COPY web ./web
  
 ENV PORT=8000
 EXPOSE 8000
