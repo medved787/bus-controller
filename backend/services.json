@@ -6,63 +6,41 @@
   "services": [
     {
       "id": "svc1",
-      "name": "repomanager",
-      "host": "127.0.0.1",
+      "name": "service1",
+      "host": "",
       "port": 8080,
       "check_type": "tcp",
       "webhook": {
-        "url": "https://awx.example.com/api/v2/job_templates/1/github/",
+        "url": "https://awx/api/v2/job_templates/1664/gitlab/",
         "method": "POST",
-        "headers": { "Content-Type": "application/json", "X-GitHub-Event": "push" },
-        "body": "{}",
-        "hmac_secret": "REPLACE_WITH_WEBHOOK_KEY_FROM_AWX_JOB_TEMPLATE_1",
-        "hmac_header": "X-Hub-Signature-256"
-      }
-    },
-    {
-      "id": "svc-health",
-      "name": "api-gateway",
-      "host": "10.0.0.20",
-      "port": 8443,
-      "check_type": "http",
-      "health_scheme": "https",
-      "health_path": "/health",
-      "slow_threshold_ms": 300,
-      "webhook": {
-        "url": "https://awx.example.com/api/v2/job_templates/3/github/",
-        "method": "POST",
-        "headers": { "Content-Type": "application/json", "X-GitHub-Event": "push" },
-        "body": "{}",
-        "hmac_secret": "REPLACE_WITH_WEBHOOK_KEY_FROM_AWX_JOB_TEMPLATE_3",
-        "hmac_header": "X-Hub-Signature-256"
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Gitlab-Token": "paste_webhook_key_here"
+        },
+        "body": "{\"trigger\": \"{{ts}}\"}",
+        "hmac_secret": "",
+        "hmac_header": ""
       }
     },
     {
       "id": "svc2",
-      "name": "Service 2",
-      "host": "10.0.0.12",
-      "port": 9090,
+      "name": "service2",
+      "host": "",
+      "port": 8081,
+      "check_type": "http",
+      "health_scheme": "http",
+      "health_path": "/health",
+      "slow_threshold_ms": 300,
       "webhook": {
-        "url": "https://awx.example.com/api/v2/job_templates/2/github/",
+        "url": "https://awx/api/v2/job_templates/1665/gitlab/",
         "method": "POST",
-        "headers": { "Content-Type": "application/json", "X-GitHub-Event": "push" },
-        "body": "{}",
-        "hmac_secret": "REPLACE_WITH_WEBHOOK_KEY_FROM_AWX_JOB_TEMPLATE_2",
-        "hmac_header": "X-Hub-Signature-256"
-      }
-    },
-     {
-      "id": "svc3",
-      "name": "Service 2",
-      "host": "10.0.0.12",
-      "port": 9090,
-      "webhook": {
-        "url": "https://awx.example.com/api/v2/job_templates/2/github/",
-        "method": "POST",
-        "headers": { "Content-Type": "application/json", "X-GitHub-Event": "push" },
-        "body": "{}",
-        "hmac_secret": "REPLACE_WITH_WEBHOOK_KEY_FROM_AWX_JOB_TEMPLATE_2",
-        "hmac_header": "X-Hub-Signature-256"
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Gitlab-Token": "paste_webhook_key_here"
+        },
+        "body": "{\"trigger\": \"{{ts}}\"}",
+        "hmac_secret": "",
+        "hmac_header": ""
       }
     }
   ]

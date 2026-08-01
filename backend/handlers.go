@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -61,7 +62,9 @@ func (s *Server) handleTrigger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := []byte(svc.Webhook.Body)
+	// body := []byte(svc.Webhook.Body)
+	rawBody := strings.ReplaceAll(svc.Webhook.Body, "{{ts}}", strconv.FormatInt(time.Now().UnixNano(), 10))
+	body := []byte(rawBody)
 	req, err := http.NewRequest(svc.Webhook.Method, svc.Webhook.URL, bytes.NewReader(body))
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, triggerResult{Success: false, Message: "failed to build request: " + err.Error()})
