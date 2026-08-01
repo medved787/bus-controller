@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
 
-  # --- Наше приложение мониторинга ---
+  # --- Наше приложение мониторинга (только API, без UI) ---
   bus-controller:
     image: bus-controller:1.0
     container_name: bus-controller
@@ -12,14 +12,36 @@ services:
       - SERVICES_CONFIG=/app/config/services.json
     volumes:
       - ./backend/services.json:/app/config/services.json:ro
-    # Порт наружу НЕ пробрасываем напрямую — доступ только через oauth2-proxy.
-    # Если нужно временно проверить без авторизации, раскомментируйте:
+    # Порт наружу НЕ пробрасываем — доступ к API только через frontend (nginx)
+    # либо через oauth2-proxy. Если нужно временно проверить API напрямую,
+    # раскомментируйте:
+    # ports:
+    #   - "8000:8000"
+    networks:
+      - monitor-net
+
+  # --- Frontend: статика + reverse proxy /api/* на bus-controller ---
+  frontend:
+    build: ./frontend
+    image: bus-controller-frontend:1.0
+    container_name: bus-controller-frontend
+    restart: unless-stopped
+    depends_on:
+      - bus-controller
+    # Порт наружу пробрасываем для локальной проверки без oauth2-proxy.
+    # В проде вместо этого публичным входом должен быть oauth2-proxy.
     ports:
-      - "8000:8000"
+      - "8080:80"
     networks:
       - monitor-net
 
   # --- Прокси с авторизацией через Keycloak (OIDC) ---
+  # NOTE: блок не менялся в рамках выделения frontend в отдельный сервис.
+  # Когда будете включать oauth2-proxy, учтите, что теперь есть отдельный
+  # frontend-сервис с UI и проксированием /api/* — вероятно, стоит поменять
+  # OAUTH2_PROXY_UPSTREAMS ниже на "http://frontend:80/", чтобы авторизация
+  # закрывала и UI, и API одним входом (сейчас он всё ещё указывает на
+  # bus-controller:8000, как было до разделения).
   # oauth2-proxy:
   #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
   #   container_name: oauth2-proxy

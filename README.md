@@ -13,20 +13,24 @@
 
 ```
 .
-├── docker-compose.yml          # оркестрация: bus-controller + oauth2-proxy
-└── backend/
-    ├── Dockerfile               # сборка Go-бинарника + рантайм-образ
-    ├── main.go                  # точка входа, роутинг HTTP
-    ├── config.go                # загрузка и валидация services.json
-    ├── checker.go                # фоновые TCP-проверки, хранилище статусов
-    ├── handlers.go               # HTTP-хендлеры: /api/status, /api/trigger/{id}
-    ├── go.mod                    # модуль bus-controller, Go 1.22
-    ├── services.json             # конфиг сервисов и вебхуков (пример)
-    └── web/
-        ├── index.html            # разметка страницы
-        ├── app.js                 # опрос /api/status, рендер карточек, вызов /api/trigger
-        └── style.css               # тёмная тема оформления
+├── docker-compose.yml          # оркестрация: bus-controller (backend) + frontend (nginx) + oauth2-proxy
+├── backend/
+│   ├── Dockerfile               # сборка Go-бинарника + рантайм-образ (только API)
+│   ├── main.go                  # точка входа, роутинг HTTP (/api/*)
+│   ├── config.go                # загрузка и валидация services.json
+│   ├── checker.go                # фоновые TCP-проверки, хранилище статусов
+│   ├── handlers.go               # HTTP-хендлеры: /api/status, /api/trigger/{id}
+│   ├── go.mod                    # модуль bus-controller, Go 1.22
+│   └── services.json             # конфиг сервисов и вебхуков (пример)
+└── frontend/
+    ├── Dockerfile                # сборка образа nginx со статикой
+    ├── nginx.conf                # раздача статики + reverse proxy /api/* → bus-controller:8000
+    ├── index.html                # разметка страницы
+    ├── app.js                     # опрос /api/status, рендер карточек, вызов /api/trigger
+    └── style.css                   # тёмная тема оформления
 ```
+
+Backend и frontend — отдельные сервисы docker-compose и отдельные Docker-образы. Backend отдаёт только JSON API (`/api/status`, `/api/trigger/{id}`) и ничего не знает о UI — это позволяет подключать к нему любые другие frontend'ы, не трогая backend.
 
 ## Как это работает
 
@@ -38,9 +42,10 @@
    Для каждой проверки замеряется время выполнения (`response_time_ms`). Если проверка прошла успешно, но заняла больше `slow_threshold_ms` (глобально или per-service), статус — `degraded`, а не `online`. Итоговый статус (`online` / `degraded` / `offline`) вместе со временем ответа и текстом последней ошибки сохраняется в потокобезопасном `StatusStore`.
 3. `handlers.go` отдаёт:
    - `GET /api/status` — JSON-массив текущих статусов всех сервисов;
-   - `POST /api/trigger/{id}` — находит сервис по `id`, собирает HTTP-запрос по настройкам его `webhook` (URL, метод, заголовки, тело), при наличии `hmac_secret` добавляет подпись HMAC-SHA256 в заголовок `hmac_header` в формате `sha256=<hex>` (совместимо с проверкой подписи AWX-вебхука для GitHub-сервиса), отправляет запрос и возвращает результат клиенту;
-   - `/` — статика из папки `web/` (сам UI).
-4. Фронтенд (`app.js`) раз в 10 секунд опрашивает `/api/status` и перерисовывает карточки; при клике на **Restart** дергает `/api/trigger/{id}` и показывает toast с результатом.
+   - `POST /api/trigger/{id}` — находит сервис по `id`, собирает HTTP-запрос по настройкам его `webhook` (URL, метод, заголовки, тело), при наличии `hmac_secret` добавляет подпись HMAC-SHA256 в заголовок `hmac_header` в формате `sha256=<hex>` (совместимо с проверкой подписи AWX-вебхука для GitHub-сервиса), отправляет запрос и возвращает результат клиенту.
+
+   Backend больше не раздаёт статику UI — этим занимается отдельный сервис `frontend` (nginx).
+4. Frontend — статический сайт (`index.html`/`app.js`/`style.css`), который отдаёт nginx (см. `frontend/nginx.conf`). Nginx проксирует все запросы `/api/*` на `bus-controller:8000`, поэтому для браузера frontend и API выглядят как один origin и `app.js` ходит по относительным путям (`/api/status`, `/api/trigger/{id}`) без CORS. `app.js` раз в 10 секунд опрашивает `/api/status` и перерисовывает карточки; при клике на **Restart** дергает `/api/trigger/{id}` и показывает toast с результатом.
 
 ## Конфигурация (`services.json`)
 
@@ -156,14 +161,20 @@ go run .
 docker compose up --build
 ```
 
-По умолчанию порт `8000` наружу не пробрасывается — доступ предполагается только через `oauth2-proxy` на порту `4180`. Для этого нужно настроить блок `oauth2-proxy` в `docker-compose.yml`:
+Поднимутся два сервиса:
+
+- `bus-controller` — backend (Go), только API, порт `8000` наружу не пробрасывается;
+- `frontend` — nginx со статикой UI и reverse proxy `/api/*` → `bus-controller:8000`, доступен на `http://localhost:8080`.
+
+Порт `8000` backend'а наружу не пробрасывается — снаружи он доступен только через `frontend` (порт `8080`) либо через `oauth2-proxy`, если он настроен. Для использования `oauth2-proxy` нужно настроить соответствующий блок в `docker-compose.yml`:
 
 - `OAUTH2_PROXY_OIDC_ISSUER_URL` — адрес realm в Keycloak;
 - `OAUTH2_PROXY_CLIENT_ID` / `OAUTH2_PROXY_CLIENT_SECRET` — данные confidential-клиента в Keycloak;
 - `OAUTH2_PROXY_REDIRECT_URL` — callback-URL, зарегистрированный в клиенте;
-- `OAUTH2_PROXY_COOKIE_SECRET` — сгенерировать через `openssl rand -base64 32`.
+- `OAUTH2_PROXY_COOKIE_SECRET` — сгенерировать через `openssl rand -base64 32`;
+- `OAUTH2_PROXY_UPSTREAMS` — при включении стоит указать `http://frontend:80/`, чтобы авторизация закрывала и UI, и API одним входом (блок пока не менялся автоматически, см. комментарий в `docker-compose.yml`).
 
-Если нужно временно открыть UI без авторизации (для локальной проверки), можно раскомментировать проброс порта `8000:8000` у сервиса `bus-controller` в `docker-compose.yml`.
+Если нужно временно проверить backend API напрямую в обход frontend (для отладки), можно раскомментировать проброс порта `8000:8000` у сервиса `bus-controller` в `docker-compose.yml`.
 
 ## HTTP API
 
@@ -171,7 +182,8 @@ docker compose up --build
 |---|---|---|
 | `GET` | `/api/status` | список статусов всех сервисов (JSON) |
 | `POST` | `/api/trigger/{id}` | запустить вебхук для сервиса `{id}` |
-| `GET` | `/` | статические файлы UI из `backend/web` |
+
+UI (`/`) теперь отдаёт отдельный сервис `frontend` (nginx), а не backend — см. `frontend/`.
 
 Пример ответа `GET /api/status`:
 
@@ -192,14 +204,11 @@ docker compose up --build
 
 ## Известные проблемы в текущем коде
 
-- **`backend/Dockerfile` не собирается как есть**: копируется только `main.go`, тогда как пакет `main` состоит ещё из `checker.go`, `config.go` и `handlers.go` — их тоже нужно скопировать перед `go build -o /bus-controller .`.
-- **`backend/Dockerfile` копирует несуществующую папку**: строка `COPY frontend ./frontend` ссылается на каталог `frontend`, которого нет — фронтенд лежит в `backend/web`. Также не копируется `services.json`, без которого приложение не запустится в контейнере (падает с ошибкой `read config`).
-- **Несогласованность имени сервиса**: Go-модуль и бинарник называются `bus-controller`, а сервис/контейнер в `docker-compose.yml` — `port-monitor`; заголовок в браузере (`backend/web/index.html`) — «Bus Controller». Функционально это ни на что не влияет, но стоит унифицировать при рефакторинге.
 - `services.json` в репозитории — пример/заготовка на 6 сервисов (`svc1`, `svc-health`, `svc2`–`svc5`); два из них (`svc2`, `svc3`) указывают на один и тот же `host:port` и имеют одинаковое имя `Service 2` — это специально оставлено как демонстрация, для реального использования конфиг нужно заменить своими сервисами.
 - Секреты в примере `services.json` (`hmac_secret: "REPLACE_WITH_WEBHOOK_KEY_FROM_AWX_JOB_TEMPLATE_*"`) и в `docker-compose.yml` (`CHANGE_ME`, `CHANGE_ME_32_BYTE_BASE64_SECRET`) — заглушки, обязательно замените их реальными значениями (Webhook Key из AWX, сгенерированные секреты) перед продакшн-разворачиванием.
 
 ## Технологии
 
 - Backend: Go 1.22, стандартная библиотека (`net/http`, `net`, `encoding/json`, `crypto/hmac`) — без внешних зависимостей.
-- Frontend: чистый HTML/CSS/JS без фреймворков и сборки.
+- Frontend: чистый HTML/CSS/JS без фреймворков и сборки, раздаётся nginx как отдельный сервис (образ `nginx:1.27-alpine`), который также проксирует `/api/*` на backend.
 - Инфраструктура: Docker, docker-compose, oauth2-proxy + Keycloak (OIDC) для авторизации.

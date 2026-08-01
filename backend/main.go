@@ -27,13 +27,6 @@ func main() {
 	mux.HandleFunc("/api/status", server.handleStatus)
 	mux.HandleFunc("/api/trigger/", server.handleTrigger)
 
-	webDir := os.Getenv("WEB_DIR")
-	if webDir == "" {
-		webDir = "./web"
-	}
-
-	mux.Handle("/", http.FileServer(http.Dir(webDir)))
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"

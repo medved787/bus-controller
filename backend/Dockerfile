@@ -11,9 +11,9 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=build /bus-controller ./bus-controller
-COPY web ./web
 # services.json НЕ копируем — он подключается через volume в docker-compose.yml,
 # чтобы список сервисов можно было менять без пересборки образа.
+# Фронтенд теперь отдельный сервис (см. frontend/) — backend отдаёт только API.
  
 ENV PORT=8000
 EXPOSE 8000
