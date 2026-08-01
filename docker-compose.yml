@@ -4,7 +4,7 @@ services:
 
   # --- Наше приложение мониторинга (только API, без UI) ---
   bus-controller:
-    image: bus-controller:1.0
+    image: bus-controller:1.1
     container_name: bus-controller
     restart: unless-stopped
     environment:

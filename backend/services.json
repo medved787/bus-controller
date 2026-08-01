@@ -7,8 +7,8 @@
     {
       "id": "svc1",
       "name": "service1",
-      "host": "",
-      "port": 8080,
+      "host": "192.168.0.34",
+      "port": 443,
       "check_type": "tcp",
       "webhook": {
         "url": "https://awx/api/v2/job_templates/1664/gitlab/",
@@ -25,7 +25,7 @@
     {
       "id": "svc2",
       "name": "service2",
-      "host": "",
+      "host": "192.168.0.34",
       "port": 8081,
       "check_type": "http",
       "health_scheme": "http",
