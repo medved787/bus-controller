@@ -4,7 +4,7 @@ services:
 
   # --- Наше приложение мониторинга (только API, без UI) ---
   bus-controller:
-    image: bus-controller:1.1
+    image: bus-controller:1.1.2
     container_name: bus-controller
     restart: unless-stopped
     environment:
@@ -34,49 +34,13 @@ services:
       - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
       - ./frontend/app.js:/usr/share/nginx/html/app.js:ro
       - ./frontend/style.css:/usr/share/nginx/html/style.css:ro
+      - ./certs:/etc/nginx/certs:ro
     # Порт наружу пробрасываем для локальной проверки без oauth2-proxy.
     # В проде вместо этого публичным входом должен быть oauth2-proxy.
     ports:
-      - "8080:80"
+      - "443:443"
     networks:
       - monitor-net
-
-  # --- Прокси с авторизацией через Keycloak (OIDC) ---
-  # NOTE: блок не менялся в рамках выделения frontend в отдельный сервис.
-  # Когда будете включать oauth2-proxy, учтите, что теперь есть отдельный
-  # frontend-сервис с UI и проксированием /api/* — вероятно, стоит поменять
-  # OAUTH2_PROXY_UPSTREAMS ниже на "http://frontend:80/", чтобы авторизация
-  # закрывала и UI, и API одним входом (сейчас он всё ещё указывает на
-  # bus-controller:8000, как было до разделения).
-  # oauth2-proxy:
-  #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
-  #   container_name: oauth2-proxy
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - bus-controller
-  #   ports:
-  #     - "4180:4180"   # это и есть публичный вход на страницу мониторинга
-  #   environment:
-  #     # --- OIDC / Keycloak ---
-  #     OAUTH2_PROXY_PROVIDER: "keycloak-oidc"
-  #     OAUTH2_PROXY_OIDC_ISSUER_URL: "https://keycloak.example.com/realms/YOUR_REALM"
-  #     OAUTH2_PROXY_CLIENT_ID: "bus-controller"
-  #     OAUTH2_PROXY_CLIENT_SECRET: "CHANGE_ME"          # secret confidential-клиента в Keycloak
-  #     OAUTH2_PROXY_REDIRECT_URL: "https://monitor.example.com/oauth2/callback"
-
-  #     # --- Куда проксировать после успешного логина ---
-  #     OAUTH2_PROXY_UPSTREAMS: "http://bus-controller:8000/"
-
-  #     # --- Технические настройки ---
-  #     OAUTH2_PROXY_HTTP_ADDRESS: "0.0.0.0:4180"
-  #     OAUTH2_PROXY_COOKIE_SECRET: "CHANGE_ME_32_BYTE_BASE64_SECRET"  # сгенерировать: openssl rand -base64 32
-  #     OAUTH2_PROXY_COOKIE_SECURE: "true"                             # false, если тестируете по http
-  #     OAUTH2_PROXY_EMAIL_DOMAINS: "*"                                 # или ограничьте нужным доменом
-  #     OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
-  #     # Если сертификат Keycloak self-signed, для теста можно ослабить проверку (не для прода):
-  #     # OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true"
-    # networks:
-    #   - monitor-net
 
 networks:
   monitor-net:
