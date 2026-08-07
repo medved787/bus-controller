@@ -181,7 +181,7 @@ docker compose up -d
 - `bus-controller` — backend (Go), только API на порту `8000`; наружу порт не пробрасывается (можно временно раскомментировать `ports: 8000:8000` в `docker-compose.yml` для отладки).
 - `frontend` — готовый образ `nginx:1.27-alpine` с примонтированными `frontend/nginx.conf`, статикой (`index.html`/`app.js`/`style.css`) и `certs/`; слушает **HTTPS на 443** (`ssl_certificate` = `certs/chain.pem`, `ssl_certificate_key` = `certs/wildcard.key`, `server_name bus.home.local`) и проксирует `/api/*` → `bus-controller:8000`. Свой образ для frontend не собирается — правки в файлах `frontend/` подхватываются рестартом контейнера (`docker compose restart frontend`), без пересборки.
 
-Доступ: `https://bus.home.local/` (или `https://localhost/`, приняв самоподписанный/несовпадающий по имени сертификат) — используются сертификаты из `certs/`, авторизация (oauth2-proxy/Keycloak и т.п.) в текущем `docker-compose.yml` не настроена.
+Доступ: `https://bus.home.local/` (или `https://localhost/`, приняв самоподписанный/несовпадающий по имени сертификат) — используются сертификаты из `certs/`, авторизация в текущем `docker-compose.yml` не настроена.
 
 ## HTTP API
 
@@ -214,7 +214,7 @@ UI (`/`) отдаёт отдельный сервис `frontend` (nginx), а н�
 - `services.json` в репозитории — пример/заготовка на 2 сервиса (`svc1` — TCP-проверка, `svc2` — HTTP-проверка) с реальным на вид приватным IP `192.168.0.34`; заголовок `X-Gitlab-Token: paste_webhook_key_here` — заглушка, замените реальным Webhook Key из AWX перед использованием кнопки Restart. Перед коммитом стоит убедиться, что в файл не попадают настоящие адреса/токены из прод-окружения.
 - `certs/wildcard.key` — приватный ключ, лежит в репозитории в открытом виде вместе с сертификатами. Стоит проверить, не должен ли он быть в `.gitignore`/секрет-хранилище, и не утёк ли он куда-то ещё.
 - `certs/wildcard.pem` ни в `Dockerfile`, ни в `frontend/nginx.conf`, ни где-либо ещё не используется — либо мёртвый файл, либо забыли подключить.
-- Авторизация (oauth2-proxy/Keycloak и т.п.) в `docker-compose.yml` не описана и не настроена — снаружи `frontend` на 443 открыт без логина, если контейнер доступен по сети.
+- Авторизация в `docker-compose.yml` не описана и не настроена — снаружи `frontend` на 443 открыт без логина, если контейнер доступен по сети.
 - Сервис `bus-controller` в `docker-compose.yml` объявлен через `image: bus-controller:1.1.2` без `build:`-секции — `docker compose up --build` не пересоберёт backend из исходников; образ нужно собирать вручную (`docker build -t bus-controller:1.1.2 .`) перед каждым релизом новой версии кода.
 
 ## Технологии

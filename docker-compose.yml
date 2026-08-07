@@ -12,11 +12,8 @@ services:
       - SERVICES_CONFIG=/app/config/services.json
     volumes:
       - ./backend/services.json:/app/config/services.json:ro
-    # Порт наружу НЕ пробрасываем — доступ к API только через frontend (nginx)
-    # либо через oauth2-proxy. Если нужно временно проверить API напрямую,
-    # раскомментируйте:
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
     networks:
       - monitor-net
 
@@ -35,8 +32,7 @@ services:
       - ./frontend/app.js:/usr/share/nginx/html/app.js:ro
       - ./frontend/style.css:/usr/share/nginx/html/style.css:ro
       - ./certs:/etc/nginx/certs:ro
-    # Порт наружу пробрасываем для локальной проверки без oauth2-proxy.
-    # В проде вместо этого публичным входом должен быть oauth2-proxy.
+    # Порт наружу пробрасываем для локального доступа по HTTPS.
     ports:
       - "443:443"
     networks:
