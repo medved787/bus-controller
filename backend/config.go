@@ -10,6 +10,8 @@ import (
 )
 
 type WebhookConfig struct {
+	ID         string            `json:"id"`
+	Label      string            `json:"label"`
 	URL        string            `json:"url"`
 	Method     string            `json:"method"`
 	Headers    map[string]string `json:"headers"`
@@ -25,11 +27,14 @@ const (
 )
 
 type ServiceConfig struct {
-	ID      string        `json:"id"`
-	Name    string        `json:"name"`
-	Host    string        `json:"host"`
-	Port    int           `json:"port"`
-	Webhook WebhookConfig `json:"webhook"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Host string `json:"host"`
+	Port int    `json:"port"`
+
+	// Actions — список именованных вебхуков (кнопок) для этого сервиса.
+	// Раньше был единственный Webhook WebhookConfig `json:"webhook"`.
+	Actions []WebhookConfig `json:"actions"`
 
 	// CheckType: "tcp" (по умолчанию) — открыть TCP-соединение до host:port;
 	// "http" — выполнить HTTP GET и проверить код ответа (2xx = online).
@@ -56,10 +61,20 @@ type ServiceConfig struct {
 	SlowThresholdMS int `json:"slow_threshold_ms"`
 }
 
+// Action возвращает action сервиса по id и флаг, найден ли он.
+func (s *ServiceConfig) Action(id string) (*WebhookConfig, bool) {
+	for i := range s.Actions {
+		if s.Actions[i].ID == id {
+			return &s.Actions[i], true
+		}
+	}
+	return nil, false
+}
+
 type Config struct {
-	CheckIntervalSeconds int             `json:"check_interval_seconds"`
-	TCPTimeoutSeconds    int             `json:"tcp_timeout_seconds"`
-	HTTPTimeoutSeconds   int             `json:"http_timeout_seconds"`
+	CheckIntervalSeconds int `json:"check_interval_seconds"`
+	TCPTimeoutSeconds    int `json:"tcp_timeout_seconds"`
+	HTTPTimeoutSeconds   int `json:"http_timeout_seconds"`
 
 	// SlowThresholdMS — глобальный порог (в мс) по умолчанию для всех
 	// сервисов, у которых не задан собственный slow_threshold_ms.
@@ -124,6 +139,7 @@ func LoadConfig(path string) (*Config, error) {
 	if len(cfg.Services) == 0 {
 		return nil, fmt.Errorf("config has no services defined")
 	}
+
 	seen := make(map[string]bool, len(cfg.Services))
 	for i := range cfg.Services {
 		s := &cfg.Services[i]
@@ -156,6 +172,31 @@ func LoadConfig(path string) (*Config, error) {
 			}
 		default:
 			return nil, fmt.Errorf("service %q has unknown check_type %q (expected %q or %q)", s.ID, s.CheckType, CheckTypeTCP, CheckTypeHTTP)
+		}
+
+		// Валидация actions (бывший единственный webhook).
+		if len(s.Actions) == 0 {
+			return nil, fmt.Errorf("service %q has no actions defined", s.ID)
+		}
+		seenActions := make(map[string]bool, len(s.Actions))
+		for j := range s.Actions {
+			a := &s.Actions[j]
+			if a.ID == "" {
+				return nil, fmt.Errorf("service %q: action at index %d is missing id", s.ID, j)
+			}
+			if seenActions[a.ID] {
+				return nil, fmt.Errorf("service %q: duplicate action id %q", s.ID, a.ID)
+			}
+			seenActions[a.ID] = true
+			if a.Label == "" {
+				a.Label = a.ID
+			}
+			if a.Method == "" {
+				a.Method = "POST"
+			}
+			if a.URL == "" {
+				return nil, fmt.Errorf("service %q: action %q is missing url", s.ID, a.ID)
+			}
 		}
 	}
 

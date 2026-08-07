@@ -10,17 +10,34 @@
       "host": "192.168.0.34",
       "port": 443,
       "check_type": "tcp",
-      "webhook": {
-        "url": "https://awx/api/v2/job_templates/1664/gitlab/",
-        "method": "POST",
-        "headers": {
-          "Content-Type": "application/json",
-          "X-Gitlab-Token": "paste_webhook_key_here"
+      "actions": [
+        {
+          "id": "restart",
+          "label": "Restart",
+          "url": "https://awx/api/v2/job_templates/1664/gitlab/",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-Gitlab-Token": "paste_webhook_key_here"
+          },
+          "body": "{\"trigger\": \"{{ts}}\"}",
+          "hmac_secret": "",
+          "hmac_header": ""
         },
-        "body": "{\"trigger\": \"{{ts}}\"}",
-        "hmac_secret": "",
-        "hmac_header": ""
-      }
+        {
+          "id": "clear-cache",
+          "label": "Clear cache",
+          "url": "https://awx/api/v2/job_templates/1666/gitlab/",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-Gitlab-Token": "paste_webhook_key_here"
+          },
+          "body": "{\"trigger\": \"{{ts}}\"}",
+          "hmac_secret": "",
+          "hmac_header": ""
+        }
+      ]
     },
     {
       "id": "svc2",
@@ -31,17 +48,47 @@
       "health_scheme": "http",
       "health_path": "/health",
       "slow_threshold_ms": 300,
-      "webhook": {
-        "url": "https://awx/api/v2/job_templates/1665/gitlab/",
-        "method": "POST",
-        "headers": {
-          "Content-Type": "application/json",
-          "X-Gitlab-Token": "paste_webhook_key_here"
+      "actions": [
+        {
+          "id": "restart",
+          "label": "Restart",
+          "url": "https://awx/api/v2/job_templates/1665/gitlab/",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-Gitlab-Token": "paste_webhook_key_here"
+          },
+          "body": "{\"trigger\": \"{{ts}}\"}",
+          "hmac_secret": "",
+          "hmac_header": ""
         },
-        "body": "{\"trigger\": \"{{ts}}\"}",
-        "hmac_secret": "",
-        "hmac_header": ""
-      }
+        {
+          "id": "clear-cache",
+          "label": "Clear cache",
+          "url": "https://awx/api/v2/job_templates/1667/gitlab/",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-Gitlab-Token": "paste_webhook_key_here"
+          },
+          "body": "{\"trigger\": \"{{ts}}\"}",
+          "hmac_secret": "",
+          "hmac_header": ""
+        },
+        {
+          "id": "download-logs",
+          "label": "Download logs",
+          "url": "https://awx/api/v2/job_templates/1667/gitlab/",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-Gitlab-Token": "paste_webhook_key_here"
+          },
+          "body": "{\"trigger\": \"{{ts}}\"}",
+          "hmac_secret": "",
+          "hmac_header": ""
+        }
+      ]
     }
   ]
 }

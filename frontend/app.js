@@ -35,6 +35,11 @@ function renderCards(services) {
     card.className = "card";
     card.dataset.status = svc.status;
 
+    const actions = svc.actions || [];
+    const buttonsHtml = actions
+      .map(a => `<button class="trigger-btn" data-id="${svc.id}" data-action="${escapeHtml(a.id)}">${escapeHtml(a.label)}</button>`)
+      .join("");
+
     card.innerHTML = `
       <div class="card-top">
         <div>
@@ -46,7 +51,7 @@ function renderCards(services) {
       ${svc.last_error ? `<div class="error-line">${escapeHtml(svc.last_error)}</div>` : ""}
       <div class="card-footer">
         <span class="last-checked">проверено: ${fmtTime(svc.last_checked)}${svc.response_time_ms != null ? ` · ${svc.response_time_ms}мс` : ""}</span>
-        <button class="trigger-btn" data-id="${svc.id}">Restart</button>
+        <div class="card-actions">${buttonsHtml}</div>
       </div>
     `;
 
@@ -72,12 +77,13 @@ async function pollStatus() {
 
 async function triggerWebhook(btn) {
   const id = btn.dataset.id;
+  const actionId = btn.dataset.action;
   btn.disabled = true;
   const originalText = btn.textContent;
   btn.textContent = "…";
 
   try {
-    const res = await fetch(`/api/trigger/${encodeURIComponent(id)}`, { method: "POST" });
+    const res = await fetch(`/api/trigger/${encodeURIComponent(id)}/${encodeURIComponent(actionId)}`, { method: "POST" });
     const data = await res.json();
     showToast(data.success ? "success" : "error", data.message || (data.success ? "Запущено" : "Ошибка"));
   } catch (err) {
